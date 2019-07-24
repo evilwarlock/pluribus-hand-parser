@@ -7,6 +7,7 @@ from os import listdir
 from os.path import isfile, join
 PREFACE_FOR_PLAYER_NAMES = "plur_"
 
+
 def read_directory(directory_path):
     onlyfiles = [f for f in listdir(directory_path) if isfile(join(directory_path, f))]
     sessions = Sessions()
@@ -32,8 +33,10 @@ def read_hands_from_file(hands_filename, session_number):
         h.parse()
     return hands
 
+
 def read_hands_from_str(hands_str):
     pass
+
 
 class Sessions(list):
     def save(self, directory):
@@ -41,18 +44,22 @@ class Sessions(list):
             with open("{}/pluribus_{}.txt".format(directory, session.label), 'w') as f:
                 f.write(session.get_poker_stars_str())
 
+
 class Hands(list):
     def __init__(self, label):
         super(list)
         self.label = label
+
     def get_poker_stars_str(self):
         return '\n\n'.join([h.get_poker_stars_str() for h in self])
+
 
 class Hand:
     def __init__(self, hand_text, session_number = None):
         self.session = session_number
         self.hand_text = hand_text
         self.parsed = False
+
     def is_hand(hand_text):
         split = hand_text.split(':')
         if len(split) != 6:
@@ -60,14 +67,17 @@ class Hand:
         if split[0] != 'STATE':
             return False
         return True
+
     def get_action_groups(action_string):
         number_of_actions = len([x for x in action_string if x in 'cfr'])
         action_strings = re.match("^{}$".format('([crf]\\d*)'*number_of_actions), action_string)
         return action_strings.groups()
+
     def _parse_register_action(self, player_seat, action_type, amount=None):
         # street  0: blind, 1: preflop, 2: postflop, 3: turn, 4: river
         # in case of call, no need to declare amount.  it will be automatically calculated.
-        # for a raise, amount should be the total amount that player has put in pot this street (ie the value coming from raw logs)
+        # for a raise, amount should be the total amount that player
+        # has put in pot this street (ie the value coming from raw logs)
         total_amount = None
         marginal_amount = None
         if action_type in ['sb', 'bb', 'b']:
@@ -75,7 +85,7 @@ class Hand:
             if action_type == 'b':
                 marginal_amount = total_amount
             elif action_type == 'bb':
-                marginal_amount = 50 # hardcode
+                marginal_amount = 50  # hardcode
             self._parse_max_money_in_pot = max(self._parse_max_money_in_pot, amount)
             self._parse_money_in_pot[player_seat] = amount
         elif action_type in ['r']:
@@ -100,8 +110,6 @@ class Hand:
         if self._parse_cur_street != 0:
             self._parse_max_money_in_pot_after_last_round = self._parse_max_money_in_pot
         self._parse_cur_street += 1
-        
-
 
     def parse(self):
         split = self.hand_text.split(':')
@@ -176,15 +184,17 @@ class Hand:
         return self.hand_text
 
     def get_poker_stars_str(self, pre=''):
-        # pre is the preface for player names - if pre="plur_", then then player names will all be e.g. "plur_MrWhite", "plur_Pluribus". This is if you want the players to be alphabetically by each other in pokertracker
+        # pre is the preface for player names - if pre="plur_",
+        # then then player names will all be e.g. "plur_MrWhite", "plur_Pluribus".
+        # This is if you want the players to be alphabetically by each other in pokertracker
         session = int(''.join(x for x in self.session if x.isdigit())) if self.session else 0
-        base_time = datetime.datetime(2019,7,11) # july 17, 2019 - the day that poker died
+        base_time = datetime.datetime(2019, 7, 11)  # july 17, 2019 - the day that A paper annouce the death of poker
         time = base_time + datetime.timedelta(seconds=1000*session + int(self.hand_number))
         hh = ''
-        hh += "PokerStars Hand #{}: Hold'em No Limit (50/100) - {}\n".format(1000*session + int(self.hand_number), time.strftime("%Y/%m/%d %H:%M:%S ET"))
-        hh += "Table 'Pluribus Session {}' 6-max (Play Money) Seat #6 is the button\n".format(session)
+        hh += "PokerStars Hand #{}: Hold'em No Limit ($50/$100) - {}\n".format(1000*session + int(self.hand_number), time.strftime("%Y/%m/%d %H:%M:%S ET"))
+        hh += "Table 'Pluribus Session {}' 6-max Seat #6 is the button\n".format(session)
         for seat, player_id in enumerate(self.player_ids):
-            hh += "Seat {}: {} (10000 in chips)\n".format(seat+1, player_id)
+            hh += "Seat {}: {} ($10000 in chips)\n".format(seat+1, player_id)
         for action in self.actions[0]:
             hh += action.get_poker_stars_str() + '\n'
         hh += '*** HOLE CARDS ***\n'
@@ -210,25 +220,30 @@ class Hand:
         for player_no in self.winners:
             player_id = self.player_ids[player_no]
             if self.uncalled_amount:
-                hh += "Uncalled bet ({}) returned to {}\n".format(self.uncalled_amount, player_id)
-            hh += "{} collected {} from pot\n".format(player_id, self.pot/len(self.winners))
+                hh += "Uncalled bet (${}) returned to {}\n".format(self.uncalled_amount, player_id)
+            hh += "{} collected ${} from pot\n".format(player_id, self.pot/len(self.winners))
         if len(self.winners) == 0:
-            # edge case where SB and BB were in a chopped pot and everyone who put money into the pot was part of the chop
-            # luckily, the only case where this happens in the data set is when exactly the SB and BB chop a pot, and I'm really fucking tired and this is the last bug, so pretend no one else can be in the pot
-            hh += "{} collected {} from pot\n".format(self.player_ids[0], self.pot/2)
-            hh += "{} collected {} from pot\n".format(self.player_ids[1], self.pot/2)
+            # edge case where SB and BB were in a chopped pot
+            # and everyone who put money into the pot was part of the chop
+            # luckily, the only case where this happens in the data set is
+            # when exactly the SB and BB chop a pot, and I'm really fucking tired and this is the last bug,
+            # so pretend no one else can be in the pot
+            hh += "{} collected ${} from pot\n".format(self.player_ids[0], self.pot/2)
+            hh += "{} collected ${} from pot\n".format(self.player_ids[1], self.pot/2)
         hh += "*** SUMMARY ***\n"
-        hh += "Total pot {} | Rake 0\n".format(self.pot)
+        hh += "Total pot ${} | Rake 0\n".format(self.pot)
         if len(self.community_cards_by_street) > 0:
             hh += "Board {}\n".format(sum(self.community_cards_by_street, Cards('')).get_poker_stars_str())
         for seat, player_id in enumerate(self.player_ids):
-            # HACK: pokerstars actually also includes type of hand e.g. "Hero: shows [Jd Ac] (a pair of Fives - lower kicker)"
+            # HACK: pokerstars actually also includes type of hand e.g.
+            # "Hero: shows [Jd Ac] (a pair of Fives - lower kicker)"
             # but poker tracker doesn't seem to actually need this info, so I leave it out.
             if saw_showdown and self.players_active[seat]:
-                winloss_string = "won ({})".format(self.pot/len(self.winners)) if self.profits[seat] > 0 else "lost"
+                winloss_string = "won $({})".format(self.pot/len(self.winners)) if self.profits[seat] > 0 else "lost"
                 hh += "Seat {}: {} showed {} and {}\n".format(seat+1, player_id, self.player_hole_cards[seat].get_poker_stars_str(), winloss_string)
             # TODO: add Seat {}: {} strings for folding
         return hh
+
 
 class Action:
     def __init__(self, player_id, action_type, amount=None, marginal_amount=None, is_all_in=False):
@@ -237,53 +252,67 @@ class Action:
         self.amount = amount
         self.marginal_amount = marginal_amount
         self.is_all_in = is_all_in
+
     def get_poker_stars_str(self):
-        action_type_to_string = {'b': 'bets', 'f': 'folds', 'ca': 'calls', 'ch': 'checks', 'r': 'raises', 'sb': 'posts small blind', 'bb': 'posts big blind'}
+        action_type_to_string = {'b': 'bets', 'f': 'folds', 'ca': 'calls', 'ch': 'checks', 'r': 'raises',
+                                 'sb': 'posts small blind', 'bb': 'posts big blind'}
         if self.action_type == 'r':
-            ans = "{}: {} {} to {}".format(self.player_id, action_type_to_string[self.action_type], self.marginal_amount, self.amount)
+            ans = "{}: {} ${} to ${}".format(self.player_id, action_type_to_string[self.action_type], self.marginal_amount, self.amount)
         elif self.action_type in ['sb', 'bb', 'b']:
-            ans = "{}: {} {}".format(self.player_id, action_type_to_string[self.action_type], self.amount)
+            ans = "{}: {} ${}".format(self.player_id, action_type_to_string[self.action_type], self.amount)
         elif self.action_type in ['ca']:
-            ans = "{}: {} {}".format(self.player_id, action_type_to_string[self.action_type], self.marginal_amount)
+            ans = "{}: {} ${}".format(self.player_id, action_type_to_string[self.action_type], self.marginal_amount)
         else:
             ans = "{}: {}".format(self.player_id, action_type_to_string[self.action_type])
         if self.is_all_in:
             ans += " and is all-in"
         return ans
 
+
 class Cards:
     def __init__(self, cards_string):
         self.cards_string = cards_string
         cards = wrap(cards_string, 2)
         self.cards = [Card(card) for card in cards]
+
     def get_poker_stars_str(self):
         return '[{}]'.format(' '.join(str(card) for card in self.cards))
+
     def __add__(self, left):
         return Cards(self.cards_string+left.cards_string)
-        
+
+
 class Card:
     def __init__(self, card_string):
         self.card_string = card_string
         self.rank = Rank(card_string[0])
         self.suit = Suit(card_string[1])
+
     def __str__(self):
         return self.card_string
+
+
 class Rank:
     def __init__(self, rank_string):
         self.rank_string = rank_string
+
+
 class Suit:
     def __init__(self, suit_string):
         self.suit_string = suit_string
 
+
 if __name__ == '__main__':
     # reading hands:
-    # h1 = 'STATE:102:ffr225cff/cr825f:KcJd|4dTc|8dTh|3h8s|8cQc|5h6h/As5cJs:-50|-100|0|0|-225|375:Budd|MrWhite|MrOrange|Hattori|MrBlue|Pluribus'
-    # h2 = 'STATE:82:fffr225fr1225c/r1850c/r4662c/r10000c:3h9s|KsAh|7c5c|5d4h|2hKd|Ad8d/7d2sAs/Qh/8h:-50|-10000|0|0|0|10050:MrBlue|Pluribus|Budd|MrWhite|MrOrange|Hattori'
-    # for hx in [h1,h2,h3]:
-    #     h = Hand(hx)
-    #     h.parse()
-    #     print(h.get_poker_stars_str())
-    #     print(h)
+    h1 = 'STATE:102:ffr225cff/cr825f:KcJd|4dTc|8dTh|3h8s|8cQc|5h6h/As5cJs:-50|-100|0|0|-225|375:Budd|MrWhite|MrOrange' \
+         '|Hattori|MrBlue|Pluribus '
+    h2 = 'STATE:82:fffr225fr1225c/r1850c/r4662c/r10000c:3h9s|KsAh|7c5c|5d4h|2hKd|Ad8d/7d2sAs/Qh/8h:-50|-10000|0|0|0' \
+         '|10050:MrBlue|Pluribus|Budd|MrWhite|MrOrange|Hattori '
+    for hx in [h1,h2]:
+        h = Hand(hx)
+        h.parse()
+        print(h.get_poker_stars_str())
+        print(h)
 
     # reading a log file:
     # session = 78
@@ -293,8 +322,8 @@ if __name__ == '__main__':
     # print(hands.get_poker_stars_str())
 
     # reading the whole directory, converting all sessions, and saving the converted sessions to disk:
-    sessions = read_directory('./../../../Downloads/aay2400_Data_File_S1/5H1AI_logs')
-    sessions.save('out')
+    # sessions = read_directory('./../../../Downloads/aay2400_Data_File_S1/5H1AI_logs')
+    # sessions.save('out')
 
     # get pluribus's unadjusted total net chips
     # sessions = read_directory('./../../Downloads/5H1AI_logs')
