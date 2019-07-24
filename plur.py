@@ -3,7 +3,7 @@ from textwrap import wrap
 from collections import namedtuple
 import re
 import datetime
-from os import listdir
+from os import listdir, getcwd
 from os.path import isfile, join
 PREFACE_FOR_PLAYER_NAMES = "plur_"
 
@@ -41,7 +41,7 @@ def read_hands_from_str(hands_str):
 class Sessions(list):
     def save(self, directory):
         for session in self:
-            with open("{}/pluribus_{}.txt".format(directory, session.label), 'w') as f:
+            with open("{}/pluribus{}.txt".format(directory, session.label), 'w') as f:
                 f.write(session.get_poker_stars_str())
 
 
@@ -304,15 +304,17 @@ class Suit:
 
 if __name__ == '__main__':
     # reading hands:
-    h1 = 'STATE:102:ffr225cff/cr825f:KcJd|4dTc|8dTh|3h8s|8cQc|5h6h/As5cJs:-50|-100|0|0|-225|375:Budd|MrWhite|MrOrange' \
-         '|Hattori|MrBlue|Pluribus '
-    h2 = 'STATE:82:fffr225fr1225c/r1850c/r4662c/r10000c:3h9s|KsAh|7c5c|5d4h|2hKd|Ad8d/7d2sAs/Qh/8h:-50|-10000|0|0|0' \
-         '|10050:MrBlue|Pluribus|Budd|MrWhite|MrOrange|Hattori '
-    for hx in [h1,h2]:
-        h = Hand(hx)
-        h.parse()
-        print(h.get_poker_stars_str())
-        print(h)
+    # h1 = 'STATE:102:ffr225cff/cr825f:KcJd|4dTc|8dTh|3h8s|8cQc|5h6h/As5cJs
+    # :-50|-100|0|0|-225|375:Budd|MrWhite|MrOrange' \
+    #      '|Hattori|MrBlue|Pluribus '
+    # h2 = 'STATE:82:fffr225fr1225c/r1850c/r4662c/r10000c:
+    # 3h9s|KsAh|7c5c|5d4h|2hKd|Ad8d/7d2sAs/Qh/8h:-50|-10000|0|0|0' \
+    #      '|10050:MrBlue|Pluribus|Budd|MrWhite|MrOrange|Hattori '
+    # for hx in [h1,h2]:
+    #     h = Hand(hx)
+    #     h.parse()
+    #     print(h.get_poker_stars_str())
+    #     print(h)
 
     # reading a log file:
     # session = 78
@@ -322,8 +324,9 @@ if __name__ == '__main__':
     # print(hands.get_poker_stars_str())
 
     # reading the whole directory, converting all sessions, and saving the converted sessions to disk:
-    # sessions = read_directory('./../../../Downloads/aay2400_Data_File_S1/5H1AI_logs')
-    # sessions.save('out')
+    # sessions = read_directory('./5H1AI_logs')  # add ur own path to directory
+    sessions = read_directory("./5H1AI_logs")
+    sessions.save('out')
 
     # get pluribus's unadjusted total net chips
     # sessions = read_directory('./../../Downloads/5H1AI_logs')
