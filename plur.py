@@ -3,7 +3,7 @@ from textwrap import wrap
 from collections import namedtuple
 import re
 import datetime
-from os import listdir, getcwd
+from os import listdir
 from os.path import isfile, join
 PREFACE_FOR_PLAYER_NAMES = "plur_"
 
@@ -41,7 +41,7 @@ def read_hands_from_str(hands_str):
 class Sessions(list):
     def save(self, directory):
         for session in self:
-            with open("{}/pluribus{}.txt".format(directory, session.label), 'w') as f:
+            with open("{}/pluribus_{}.txt".format(directory, session.label), 'w') as f:
                 f.write(session.get_poker_stars_str())
 
 
