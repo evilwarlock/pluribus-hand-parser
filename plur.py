@@ -206,6 +206,8 @@ class Hand:
         community_cards_strs = []
         for street_no, community_cards in enumerate(self.community_cards_by_street):
             community_cards_strs.append(community_cards.get_poker_stars_str())
+            if len(community_cards_strs) > 2:
+                community_cards_strs[0:2] = [' '.join(community_cards_strs[0:2]).replace('] [', ' ')]
             hh += '*** {} *** {}\n'.format(titles[street_no], ' '.join(community_cards_strs))
             if len(self.actions)-1 >= street_no+2:
                 for action in self.actions[street_no+2]:
@@ -238,10 +240,19 @@ class Hand:
             # HACK: pokerstars actually also includes type of hand e.g.
             # "Hero: shows [Jd Ac] (a pair of Fives - lower kicker)"
             # but poker tracker doesn't seem to actually need this info, so I leave it out.
+
+            # add summary info to support hand2note
+            if not saw_showdown:
+                for winner_id in self.winners:
+                    if seat == winner_id:
+                        hh += "Seat {}: {} collected (${})\n".format(seat + 1, player_id, self.pot / len(self.winners))
+                    else:
+                        hh += "Seat {}: {} folded\n".format(seat + 1, player_id)
+
             if saw_showdown and self.players_active[seat]:
-                winloss_string = "won $({})".format(self.pot/len(self.winners)) if self.profits[seat] > 0 else "lost"
+                winloss_string = "won (${})".format(self.pot/len(self.winners)) if self.profits[seat] > 0 else "lost"
                 hh += "Seat {}: {} showed {} and {}\n".format(seat+1, player_id, self.player_hole_cards[seat].get_poker_stars_str(), winloss_string)
-            # TODO: add Seat {}: {} strings for folding
+
         return hh
 
 
@@ -304,13 +315,11 @@ class Suit:
 
 if __name__ == '__main__':
     # reading hands:
-    # h1 = 'STATE:102:ffr225cff/cr825f:KcJd|4dTc|8dTh|3h8s|8cQc|5h6h/As5cJs
-    # :-50|-100|0|0|-225|375:Budd|MrWhite|MrOrange' \
-    #      '|Hattori|MrBlue|Pluribus '
-    # h2 = 'STATE:82:fffr225fr1225c/r1850c/r4662c/r10000c:
-    # 3h9s|KsAh|7c5c|5d4h|2hKd|Ad8d/7d2sAs/Qh/8h:-50|-10000|0|0|0' \
-    #      '|10050:MrBlue|Pluribus|Budd|MrWhite|MrOrange|Hattori '
-    # for hx in [h1,h2]:
+    # h1 = 'STATE:102:ffr225cff/cr825f:KcJd|4dTc|8dTh|3h8s|8cQc|5h6h/As5cJs:-50|-100|0|0|-225|375:Budd|MrWhite|MrOrange' \
+    #      '|Hattori|MrBlue|Pluribus'
+    # h2 = 'STATE:82:fffr225fr1225c/r1850c/r4662c/r10000c:3h9s|KsAh|7c5c|5d4h|2hKd|Ad8d/7d2sAs/Qh/8h:-50|-10000|0|0|0' \
+    #      '|10050:MrBlue|Pluribus|Budd|MrWhite|MrOrange|Hattori'
+    # for hx in [h1, h2]:
     #     h = Hand(hx)
     #     h.parse()
     #     print(h.get_poker_stars_str())
@@ -324,7 +333,7 @@ if __name__ == '__main__':
     # print(hands.get_poker_stars_str())
 
     # reading the whole directory, converting all sessions, and saving the converted sessions to disk:
-    # sessions = read_directory('./5H1AI_logs')  # add ur own path to directory
+    sessions = read_directory('./5H1AI_logs')  # add ur own path to directory
     sessions = read_directory("./5H1AI_logs")
     sessions.save('out')
 
